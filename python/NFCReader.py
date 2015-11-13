@@ -3,18 +3,18 @@
 ########################### NFC Reader python script ############################
 # Program to read the commands from the Bostin Technology 125KHz RFID Tag Reader
 # Available commands:
-# U - Read Card UID         # TODO: No Code written yet
-# S - Card Status           # TODO: Modify routine
+# U - Read Card UID         # TODO: Ready To Test
+# S - Card Status           # TODO: Ready To Test
 # P - Program EEPROM        # TODO: Modify routine
 # K - Store Keys            # TODO: No Code written yet
-# W - Write Card Block      # TODO: No Code written yet
+# W - Write Card Block      # TODO: In Progress
 # R - Read Card Block       # TODO: Modify routine
 # I - Inc Value             # TODO: No Code written yet
 # D - Dec Value             # TODO: No Code written yet
 # T - Transfer Value        # TODO: No Code written yet
 # x - Type Identification   # TODO: No Code written yet
-# z - Product and Firmware Identifier   # TODO: Modify routine
-# F - Factory Reset         # TODO: Modify routine
+# z - Product and Firmware Identifier   # TODO: Ready To Test
+# F - Factory Reset         # TODO: Ready To Test
 # e - Exit program
 
 ########################### Outstanding Actions ##################################
@@ -31,13 +31,11 @@ GPIO_PIN = 0 # Jumper 2, also known as GPIO17
 # GPIO_PIN = 3 # Jumper 4, also known as GPIO22
 
 # define the different card types
-MIFARE_1K = 1000
-MIFARE_4K = 1001
-MIFARE_ULTRA = 1002
-NTAG2 = 1003
-MIFARE_PROX = 1004 
+UNKNOWN_CARD = 999
+MIFARE_1K = 1001
+MIFARE_4K = 1002
+ULTRA_NTAG2 = 1003
 
-#TODO: Check these are used
 
 
 ################################### Code below this line is directly from the RFID Reader  #####################
@@ -90,17 +88,6 @@ MIFARE_PROX = 1004
             #notag = False
     #print "Tag Status: %s" % hex(ans)
     #return
-
-#def FactoryReset(fd):
-    ## send the factory reset command
-    #WaitForCTS()
-    ## print "Performing a factory reset ...." #Added for Debug purposes
-    #wiringpi2.serialPutchar(fd, 0x46)
-    #wiringpi2.serialPutchar(fd, 0x55)
-    #wiringpi2.serialPutchar(fd, 0xAA)
-    #time.sleep(0.1)
-    #print "FACTORY RESET COMPLETE "
-    #print ""
 
 #def SetPollingDalay(fd):
     ## set the polling delay for the reader
@@ -249,7 +236,7 @@ def DecodeAcknowledgeByte(ackbyte):
     #    MFRC Error = 1
     # A good response would be 10xx0110 (binary)
     #
-    # returns True if no error, False if an error detected
+    # returns card type (see above) if no error, False if an error detected
     
     # taking the response, shifting it to select the required bit and then ANDing it with 0b1 will return just the bit I'm 
     # interested in as 1 or 0. The number of shifts (>>) determines the bit number being examined
@@ -272,29 +259,71 @@ def DecodeAcknowledgeByte(ackbyte):
     elif (int(ackbyte,2) >> 6 & 0b1) = False:
         # MFRC Error = 1
         print "MFRC Error"
-        return False
+        return 
     
-    # no error detected, all ok
-    return True
+    # no error detected, all ok, now detect card type.
+    card_type = UNKNOWN_CARD
+    # decode the ackowledge byte for card type
+    # Identify the card type from bits 5 & 6
+    if int(ans,2) >> 6 & 0b1) == 1:
+        #if the UL Type = 1, it is a Ultralight / NTAG2 card
+        #print "UL Type = Single UID"       #Added for debug purposes
+        card_type = ULTRA_NTAG2
+    elif int(ans,2) >> 5 & 0b1) == 1:
+        #print "MF Type = 4k byte card"     #Added for Debug purposes
+        card_type = MIFARE_4K
+    else:
+        #print "MF Card = 1k byte card"     #Added for Debug purposes
+        card_type = MIFARE_1K
+    return card_type
 
 def ReadVersion(fd):
     # read the version from the NFC board
     WaitForCommandStobe()
-    # print "Sending Read Version Command" #Added for Debug purposes
+    #print "Sending Reading Version command"  # Added for Debug purposes
     wiringpi2.serialPuts(fd,"z")
     time.sleep(0.1)
     ans = ReadText(fd)
     print "Response: %s" % ans
     return
-
-def ReadTypeIdent(fd):
-    # send 'x'
-    print "Not implemented yet"
-    return
     
 def ReadStatus(fd):
-    # send an 'S'
-    print "Not implemented yet"
+    # Read the Card Status from the NFC Board
+    # The acknowledge byte flags indicate card status
+    
+    print "Reading Card Status ......."
+
+    print "Waiting for a card ...."
+
+    notag = True
+    while notag:
+        WaitForCommandStobe()
+        # print "Sending Read Card Status and UID command" #Added for Debug purposes
+        # send an ASCII 'S' 0x53
+        wiringpi2.serialPutchar(fd, 0x53)
+        time.sleep(0.1)
+        ans = ReadInt(fd)
+        # print "Tag Status: %s" % hex(ans) #Added for Debug purposes
+        
+        reply = DecodeAcknowledgeByte(ans)
+        # reply will be either false or the card type value
+        if reply:
+            # Card present and read
+            notag = False
+            # print "Tag Present" #Added for Debug purposes
+            print "Card Status"
+            print "-->%s<--" % ans
+            if reply == MIFARE_1K:
+                print "MiFare 1k byte card"
+            elif reply == MIFARE_4K:
+                print "MiFare 4k byte card"
+            elif reply == ULTRA_NTAG2:
+                print "Ultralight / NTAG2 Card"
+            else:
+                print "Unknown Card type"
+                
+        #TODO: I think I might have to revert this to the old version as this doesn't tell us the type.
+        # I think I can do this from git committed version.
     return
         
 def ReadCardUID(fd):
@@ -302,9 +331,9 @@ def ReadCardUID(fd):
     # Note: Mifare 1k and 4k cards have a 4 byte serial number so the last 3 bytes contain dummy (0x00) data, 
     #       Ultralight / NTAG2 cards have a 7 byte serial number
 
-    print "Reading Card Status and UID ......."
+    print "Reading Card UID ......."
 
-    print "Waiting for a tag ...."
+    print "Waiting for a card ...."
 
     notag = True
     while notag:
@@ -326,10 +355,54 @@ def ReadCardUID(fd):
     return
  
 def FactoryReset(fd):
-    # send 'F'
-    print "Not implemented yet"
+    # send the factory reset command to reload default values
+    WaitForCTS()
+    # print "Performing a factory reset ...." #Added for Debug purposes
+    wiringpi2.serialPutchar(fd, 0x46)
+    wiringpi2.serialPutchar(fd, 0x55)
+    wiringpi2.serialPutchar(fd, 0xAA)
+    time.sleep(0.1)
+    print "FACTORY RESET COMPLETE"
+    print ""
     return
     
+def WriteCardBlock(fd):
+    # Write 16 bytes of data to the specified block
+    # A block is made up of 16 bytes, with 4 (16 on upper) blocks in a sector
+    # Blocks 3, 7, 11, 15 etc contain Security data and Access bits
+    
+    # user selection of card type
+      
+    # Capture and validate data to be written - MiFare
+    # Block address 0 - 255
+    # Key Type 0 = KeyA, 1 = KeyB
+    # Key Code Number 0 - 31
+    # 16 bytes of data, each byte 0 - 255
+    
+    # Capture and validate data to be written - Ultra
+    # Page Address 0 - 15
+
+    # Capture and validate data to be written - NTAG2
+    # Page Address 0 - 63
+    
+    
+    # Wait for a card to be present, capture type
+    
+    # check status and if ok continue
+    
+    # Write Block / Page of data
+
+    # Check Status for error
+    
+    # send 'W'
+    print "Not implemented yet"
+    return
+
+def ReadTypeIdent(fd):
+    # send 'x'
+    print "Not implemented yet"
+    return
+
 def ProgramEEPROM(fd):
     # send 'P'
     print "Not implemented yet"
@@ -337,11 +410,6 @@ def ProgramEEPROM(fd):
     
 def StoreKeys(fd):
     #send 'K'
-    print "Not implemented yet"
-    return
-    
-def WriteCardBlock(fd):
-    # send 'W'
     print "Not implemented yet"
     return
     
