@@ -3,21 +3,24 @@
 ########################### NFC Reader python script ############################
 # Program to read the commands from the Bostin Technology 125KHz RFID Tag Reader
 # Available commands:
-# U - Read Card UID                     # TODO: Ready To Test
-# S - Card Status                       # TODO: Ready To Test
-# P - Program EEPROM        # TODO: Modify routine
-# K - Store Keys            # TODO: No Code written yet
-# W - Write Card Block                  # TODO: Ready To Test
-# R - Read Card Block                   # TODO: Ready To Test
-# I - Inc Value                         # TODO: Ready To Test
-# D - Dec Value                         # TODO: Ready To Test
-# T - Transfer Value                    # TODO: Ready To Test
-# x - Type Identification               # TODO: Ready To Test
-# z - Product and Firmware Identifier   # TODO: Ready To Test
-# F - Factory Reset                     # TODO: Ready To Test
+# U - Read Card UID
+# S - Card Status
+# P - Program EEPROM
+# K - Store Keys
+# W - Write Card Block
+# R - Read Card Block
+# I - Inc Value
+# D - Dec Value
+# T - Transfer Value
+# x - Type Identification
+# z - Product and Firmware Identifier
+# F - Factory Reset
 # e - Exit program
 
 ########################### Outstanding Actions ##################################
+
+#TODO: Test and check all code / functions
+
 
 import wiringpi2
 import time
@@ -169,13 +172,13 @@ def WaitForCard(fd):
 
 def GetBlockAddress():
     # captures, validates and returns the block address
-    getblockaddrress = ""
+    getblockaddress = ""
     while getblockaddrress = "":
-        getblockaddrress = raw_input("Enter Block Address (0 - 255):")
-        if getblockaddrress < 0 or getblockaddrress > 255:
+        getblockaddress = raw_input("Enter Block Address (0 - 255):")
+        if getblockaddress < 0 or getblockaddress > 255:
             print "Invalid Block entered"
-            getblockaddrress = ""
-    return getblockaddrress
+            getblockaddress = ""
+    return getblockaddress
     
 def GetKeyType():
     # gets and returns the key type, 0 or 1
@@ -201,12 +204,25 @@ def GetPageAddress(page_min,page_max):
     # get and validate the page address
     getpageaddress = ""
         while getpageaddress = "":
-        getpageaddress = raw_input("Enter Page Address (0 - 15):")
+        getpageaddress = raw_input("Enter Page Address (%s - %s):" % (page_min, page_max))
         if getpageaddress < page_min or getpageaddress > page_max:
             print "Invalid Page Address entered"
             getpageaddress = ""
     return getpageaddress
-    
+
+def GetDataBytes(num_bytes):
+    # Capture data based on bytes given
+    byte_num = 0
+    # create an empty list of number of bytes to store the values in
+    bytes_data = [0] * num_bytes
+    print "Enter bytes, starting with LSB"
+    while byte_num < num_bytes:
+        value_input = int(raw_input("Enter byte %d:" % byte_num))
+        if value_input >= 0 AND value_input <=255:
+            bytes_data [byte_num] = value_input
+            byte_num = byte_num + 1
+    return bytes_data
+
 ########################################## Specific ##############################################
 
 
@@ -357,20 +373,8 @@ def WriteCardBlock(fd):
         elif card_type = "e" or card_type == "E":
             return
     
-    # Capture data based on qty_data above
-    bytes_read = 0
-    # create an empty list of 16 bytes to store the values in
-    data = [0] * 16
-    print "Enter bytes, starting with LSB"
-    while bytes_read < qty_data:
-        print "Enter byte %d:" % data_read
-        value_input = int(raw_input("Enter byte %d:" % data_read))
-        if value_input >= 0 AND value_input <=255:
-            data [bytes_read] = value_input
-            bytes_read = bytes_read + 1
-    
+    data = GetDataBytes(qty_data)
     print "Data Entered is %s" % data
-
 
     # Wait for a card to be present, capture type
     # check status and if ok continue
@@ -446,16 +450,6 @@ def ReadTypeIdent(fd):
             print "SAK              : %s" % sak
     return
 
-def ProgramEEPROM(fd):
-    # send 'P'
-    print "Not implemented yet"
-    return
-
-def StoreKeys(fd):
-    #send 'K'
-    print "Not implemented yet"
-    return
-
 def ReadCardBlock(fd):
     # Read 16 bytes of data from the specified block
     # A block is made up of 16 bytes, with 4 (16 on upper) blocks in a sector
@@ -510,8 +504,8 @@ def ReadCardBlock(fd):
     # Wait for a card to be present, capture type
     # check status and if ok continue
     if WaitForCard(fd):
-        # Write Block / Page of data
-        # send the write block command ASCII 'R' 0x52
+        # REad Block / Page of data
+        # send the read block command ASCII 'R' 0x52
         wiringpi2.serialPutchar(fd, 0x52)
         
         if card_type = MIFARE:
@@ -561,18 +555,7 @@ def IncValue(fd):
     print "***** Enter Destination details *****"
     dest_block_addr = GetBlockAddress()
     
-    # Capture data based on 4 bytes
-    bytes_read = 0
-    # create an empty list of 4 bytes to store the values in
-    data = [0] * qty_data
-    print "Enter bytes, starting with LSB"
-    while bytes_read < qty_data:
-        print "Enter byte %d:" % data_read
-        value_input = int(raw_input("Enter byte %d:" % data_read))
-        if value_input >= 0 AND value_input <=255:
-            data [bytes_read] = value_input
-            bytes_read = bytes_read + 1
-    
+    data = GetDataBytes(qty_data)
     print "Data Entered is %s" % data
 
     # Wait for a card to be present, capture type
@@ -630,18 +613,7 @@ def DecValue(fd):
     print "***** Enter Destination details *****"
     dest_block_addr = GetBlockAddress()
     
-    # Capture data based on 4 bytes
-    bytes_read = 0
-    # create an empty list of 4 bytes to store the values in
-    data = [0] * qty_data
-    print "Enter bytes, starting with LSB"
-    while bytes_read < qty_data:
-        print "Enter byte %d:" % data_read
-        value_input = int(raw_input("Enter byte %d:" % data_read))
-        if value_input >= 0 AND value_input <=255:
-            data [bytes_read] = value_input
-            bytes_read = bytes_read + 1
-    
+    data = GetDataBytes(qty_data)
     print "Data Entered is %s" % data
 
     # Wait for a card to be present, capture type
@@ -725,6 +697,64 @@ def TransferValue(fd):
         print "Card Transfer Value successful"
     return
 
+def ProgramEEPROM(fd):
+    # Program the internal EEPROM for adjusting system parameters
+    # refer to the documentation to understand valid values allowed
+    memory_loc = 0
+    data_2_write = 0
+    
+    memory_loc = GetPageAddress(0, 255) 
+    data_2_write = GetDataBytes(1)
+
+    # send the program EEPROM command ASCII 'P' 0x50
+    wiringpi2.serialPutchar(fd, 0x50)
+    wiringpi2.serialPutchar(fd, memory_loc)
+    wiringpi2.serialPutchar(fd, data_2_write)
+
+    if DecodeAcknowledgeByte(ans):
+        # Card present and read
+        nocard = False
+        print "EEPROM Program successful"
+    return
+
+def StoreKeys(fd):
+    # NFC Reader can store 32 MiFare Security Keys
+    # 6 byte codes are required to access individual card sectors for any red or write actions
+    key_code = ""
+    qty_data = 6
+    
+    print ""
+    print "Only works with Mifare 1k / 4k cards"
+    print ""
+    print "Only use this command once Key Codes are fully understood"
+    print ""
+    # MiFare 1k or 4k card selected
+    # Capture and validate data to be written - MiFare
+    # Key Code Number 0 - 31
+    # 6 bytes of data, each byte 0 - 255
+    key_code = GetKeyCode()
+    data = GetDataBytes(qty_data)
+    print "Data Entered is %s" % data
+    
+    # Wait for a card to be present, capture type
+    # check status and if ok continue
+    if WaitForCard(fd):
+        # Store Keys
+        # send the store keys command ASCII 'K' 0x4B
+        wiringpi2.serialPutchar(fd, 0x4B)
+        
+        # key_code is already a number 0 - 31
+        wiringpi2.serialPutchar(fd, (key_type + key_code)
+    
+    # Check Status for error
+    ans = ReadInt(fd)
+    # print "Store Keys Status: %s" % hex(ans) #Added for Debug purposes
+    if DecodeAcknowledgeByte(ans):
+        # Card present and read
+        nocard = False
+        print "Store Keys successful"
+    return    
+    
 def HelpText():
     # show the help text
     print "**************************************************************************\n"
