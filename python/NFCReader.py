@@ -20,6 +20,7 @@
 ########################### Outstanding Actions ##################################
 
 #TODO: Test and check all code / functions
+#TODO: removed functions that are not going to be available initially. 
 
 
 import wiringpi2
@@ -65,16 +66,16 @@ def NFCSetup():
 
     if response == 0 and fd >0:
         # if wiringpi is setup and the opened channel is greater than zero (zero = fail)
-        print "PI setup complete on channel %d " % fd
+        print ("PI setup complete on channel %d " % fd)
     else:
-        print "Unable to Setup communications"
+        print ("Unable to Setup communications")
         sys.exit()
         
     return fd
 
 def WaitForCommandStobe():
     # continually monitor the selected GPIO pin and wait for the line to go low
-    # print "Waiting for Command Strobe" # Added for debug purposes
+    # print ("Waiting for Command Strobe") # Added for debug purposes
     while wiringpi2.digitalRead(GPIO_PIN):
         # do nothing
         time.sleep(0.001)
@@ -83,11 +84,11 @@ def WaitForCommandStobe():
 def ReadText(fd):
     # read the data back from the serial line and return it as a string to the calling function
     qtydata = wiringpi2.serialDataAvail(fd)
-    # print "Amount of data: %d bytes" % qtydata # Added for debug purposes
+    # print ("Amount of data: %d bytes" % qtydata) # Added for debug purposes
     response = ""
     while qtydata > 0:
         # while there is data to be read, read it back
-        # print "Reading data back %d" % qtydata #Added for Debug purposes
+        # print ("Reading data back %d" % qtydata) #Added for Debug purposes
         response = response + chr(wiringpi2.serialGetchar(fd))
         qtydata = qtydata - 1
     return response
@@ -95,10 +96,10 @@ def ReadText(fd):
 def ReadInt(fd):
     # read a single character back from the serial line
     qtydata = wiringpi2.serialDataAvail(fd)
-    # print "Amount of data: %s bytes" % qtydata  # Added for debug purposes
+    # print ("Amount of data: %s bytes" % qtydata)  # Added for debug purposes
     response = 0
     if qtydata > 0:
-        # print "Reading data back %d" % qtydata #Added for Debug purposes
+        # print ("Reading data back %d" % qtydata) #Added for Debug purposes
         response = wiringpi2.serialGetchar(fd)
     return response
 
@@ -123,25 +124,28 @@ def DecodeAcknowledgeByte(ackbyte):
 
     # taking the response, shifting it to select the required bit and then ANDing it with 0b1 will return just the bit I'm
     # interested in as 1 or 0. The number of shifts (>>) determines the bit number being examined
-    if (int(ackbyte,2) >> 0 & 0b1)= True:
+    
+    print ("Acknowledge byte: %s" % bin(ackbyte))
+
+    if (ackbyte  & 0b00000001) == True:
         # EEPROM Error if True
-        print "EEPROM Error"
+        print ("EEPROM Error")
         return False
-    elif (int(ackbyte,2) >> 1 & 0b1) = False:
+    elif (ackbyte & 0b00000010) == False:
         # Card Not OK if 0
-        print "Card Not OK"
+        print ("Card Not OK")
         return False
-    elif (int(ackbyte,2) >> 2 & 0b1) = False:
+    elif (ackbyte & 0b00000100) == False:
         # Receive Error = 0
-        print "Receive Error"
+        print ("Receive Error")
         return False
-    elif (int(ackbyte,2) >> 3 & 0b1) = True:
+    elif (ackbyte & 0b00001000) == True:
         # RS232 Error = 1
-        print "RS232 Error"
+        print ("RS232 Error")
         return False
-    elif (int(ackbyte,2) >> 6 & 0b1) = False:
+    elif (ackbyte & 0b01000000) == True:
         # MFRC Error = 1
-        print "MFRC Error"
+        print ("MFRC Error")
         return False
 
     # no error detected, all ok.
@@ -151,17 +155,17 @@ def WaitForCard(fd):
     # wait in a loop for a card to be present and then validate it.
     # Uses the Read Card Status to determine if a card is present
     
-    print "Waiting for a card ...."
+    print ("Waiting for a card ....")
 
     nocard = True
     while nocard:
         WaitForCommandStobe()
-        # print "Sending Read Card Status command" #Added for Debug purposes
+        # print ("Sending Read Card Status command") #Added for Debug purposes
         # send an ASCII 's' 0x53
         wiringpi2.serialPutchar(fd, 0x53)
         time.sleep(0.1)
         ans = ReadInt(fd)
-        # print "Tag Status: %s" % hex(ans) #Added for Debug purposes
+        # print ("Tag Status: %s" % hex(ans)) #Added for Debug purposes
 
         if DecodeAcknowledgeByte(ans):
             # Card present and read
@@ -173,40 +177,40 @@ def WaitForCard(fd):
 def GetBlockAddress():
     # captures, validates and returns the block address
     getblockaddress = ""
-    while getblockaddrress = "":
-        getblockaddress = raw_input("Enter Block Address (0 - 255):")
+    while getblockaddrress == "":
+        getblockaddress = input("Enter Block Address (0 - 255):")
         if getblockaddress < 0 or getblockaddress > 255:
-            print "Invalid Block entered"
+            print ("Invalid Block entered")
             getblockaddress = ""
     return getblockaddress
     
 def GetKeyType():
     # gets and returns the key type, 0 or 1
     getkeytype = ""
-    while getkeytype = "":
-        getkeytype = int(raw_input("Select Key Type 0 = KeyA, 1 = KeyB"))
+    while getkeytype == "":
+        getkeytype = int(input("Select Key Type 0 = KeyA, 1 = KeyB"))
         if getkeytype != 0 or getkeytype != 1:
-            print "Invalid Key Type Entered"
+            print ("Invalid Key Type Entered")
             getkeytype = ""
     return getkeytype
 
 def GetKeyCode():
     # gets and returns the key code
     getkeycode = ""
-    while getkeycode = "":
-        getkeycode = raw_input("Select Key Code Number (0 - 31)")
+    while getkeycode == "":
+        getkeycode = input("Select Key Code Number (0 - 31)")
         if getkeycode < 0 or getkeycode > 31:
-            print "Invalid Key Type Entered"
+            print ("Invalid Key Type Entered")
             getkeycode = ""
     return getkeycode
 
 def GetPageAddress(page_min,page_max):
     # get and validate the page address
     getpageaddress = ""
-        while getpageaddress = "":
-        getpageaddress = raw_input("Enter Page Address (%s - %s):" % (page_min, page_max))
+    while getpageaddress == "":
+        getpageaddress = input("Enter Page Address (%s - %s):" % (page_min, page_max))
         if getpageaddress < page_min or getpageaddress > page_max:
-            print "Invalid Page Address entered"
+            print ("Invalid Page Address entered")
             getpageaddress = ""
     return getpageaddress
 
@@ -215,10 +219,10 @@ def GetDataBytes(num_bytes):
     byte_num = 0
     # create an empty list of number of bytes to store the values in
     bytes_data = [0] * num_bytes
-    print "Enter bytes, starting with LSB"
+    print ("Enter bytes, starting with LSB")
     while byte_num < num_bytes:
-        value_input = int(raw_input("Enter byte %d:" % byte_num))
-        if value_input >= 0 AND value_input <=255:
+        value_input = int(input("Enter byte %d:" % byte_num))
+        if value_input >= 0 and value_input <=255:
             bytes_data [byte_num] = value_input
             byte_num = byte_num + 1
     return bytes_data
@@ -229,92 +233,91 @@ def GetDataBytes(num_bytes):
 def ReadVersion(fd):
     # read the version from the NFC board
     WaitForCommandStobe()
-    #print "Sending Reading Version command"  # Added for Debug purposes
+    #print ("Sending Reading Version command")  # Added for Debug purposes
     wiringpi2.serialPuts(fd,"z")
     time.sleep(0.1)
     ans = ReadText(fd)
-    print "Response: %s" % ans
+    print ("Response: %s" % ans)
     return
     
 def ReadStatus(fd):
     # Read the Card Status from the NFC Board
     # The acknowledge byte flags indicate card status
 
-    print "Reading Card Status ......."
+    print ("Reading Card Status .......")
 
-    print "Waiting for a card ...."
+    print ("Waiting for a card ....")
 
     nocard = True
     while nocard:
         WaitForCommandStobe()
-        # print "Sending Read Card Status and UID command" #Added for Debug purposes
+        # print ("Sending Read Card Status and UID command") #Added for Debug purposes
         # send an ASCII 'S' 0x53
         wiringpi2.serialPutchar(fd, 0x53)
         time.sleep(0.1)
         ans = ReadInt(fd)
-        # print "Tag Status: %s" % hex(ans) #Added for Debug purposes
+        print ("Tag Status: %s" % hex(ans)) #Added for Debug purposes
 
         if DecodeAcknowledgeByte(ans):
             # Card present and read
             nocard = False
-            # print "Tag Present" #Added for Debug purposes
-            print "Card Status"
-            print "-->%s<--" % ans
+            # print ("Tag Present") #Added for Debug purposes
+            print ("Card Status")
+            print ("-->%s<--" % hex(ans))
             
             card_type = UNKNOWN_CARD
             # decode the ackowledge byte for card type
             # Identify the card type from bits 5 & 6
-            if int(ans,2) >> 6 & 0b1) == 1:
+            if (ans & 0b00100000) == 1:
                 #if the UL Type = 1, it is a Ultralight / NTAG2 card
-               card_type = ULTRA_NTAG2
-                print "Ultralight / NTAG2 Card"
-            elif int(ans,2) >> 5 & 0b1) == 1:
+                card_type = ULTRA_NTAG2
+                print ("Ultralight / NTAG2 Card")
+            elif (ans & 0b00010000) == 1:
                 #MiFare Type 4k byte card" 
                 card_type = MIFARE_4K
-                print "MiFare 4k byte card"
+                print ("MiFare 4k byte card")
             else:
                 # MiFare Card 1k byte card"
                 card_type = MIFARE_1K
-                print "MiFare 1k byte card"
-   return
-
+                print ("MiFare 1k byte card")
+    return
+    
 def ReadCardUID(fd):
     # Read the Card Status and all data blocks from within the UID
     # Note: Mifare 1k and 4k cards have a 4 byte serial number so the last 3 bytes contain dummy (0x00) data,
     #       Ultralight / NTAG2 cards have a 7 byte serial number
 
-    print "Reading Card UID ......."
+    print ("Reading Card UID .......")
 
-    print "Waiting for a card ...."
+    print ("Waiting for a card ....")
 
     nocard = True
     while nocard:
         WaitForCommandStobe()
-        # print "Sending Read Card Status command" #Added for Debug purposes
+        # print ("Sending Read Card Status command") #Added for Debug purposes
         # send an ASCII 'U' 0x55
         wiringpi2.serialPutchar(fd, 0x55)
         time.sleep(0.1)
         ans = ReadInt(fd)
-        # print "Tag Status: %s" % hex(ans) #Added for Debug purposes
+        # print ("Tag Status: %s" % hex(ans)) #Added for Debug purposes
 
         if DecodeAcknowledgeByte(ans):
             # Card present and read
             nocard = False
             ans = ReadText(fd)
-            print "Card UID"
-            print "-->%s<--" % ans
+            print ("Card UID")
+            print ("-->%s<--" % ans)
     return
 
 def FactoryReset(fd):
     # send the factory reset command to reload default values
     WaitForCommandStobe()
-    # print "Performing a factory reset ...." #Added for Debug purposes
+    # print ("Performing a factory reset ....") #Added for Debug purposes
     wiringpi2.serialPutchar(fd, 0x46)
     wiringpi2.serialPutchar(fd, 0x55)
     wiringpi2.serialPutchar(fd, 0xAA)
     time.sleep(0.1)
-    print "FACTORY RESET COMPLETE"
-    print ""
+    print ("FACTORY RESET COMPLETE/n")
     return
 
     
@@ -332,15 +335,14 @@ def WriteCardBlock(fd):
     choice = ""
 
     # user selection of card type
-    print "**************************************************************************\n"
-    print "Select Card Type: -"
-    print " 1 - Mifare 1k / 4k card"
-    print " 2 - Ultralight card"
-    print " 3 - NTAG2 card"
-    print " e - Return to main menu"
-    print ""
-    while choice = "":
-        choice= raw_input ("Select Card Type:")
+    print ("**************************************************************************\n")
+    print ("Select Card Type: -")
+    print (" 1 - Mifare 1k / 4k card")
+    print (" 2 - Ultralight card")
+    print (" 3 - NTAG2 card")
+    print (" e - Return to main menu\n")
+    while choice == "":
+        choice= input ("Select Card Type:")
         if card_type == "1":
             # MiFare 1k or 4k card selected
             # Capture and validate data to be written - MiFare
@@ -349,7 +351,7 @@ def WriteCardBlock(fd):
             # Key Code Number 0 - 31
             # 16 bytes of data, each byte 0 - 255
             card_type = MIFARE
-            print "Enter MiFare 1k / 4k details"
+            print ("Enter MiFare 1k / 4k details")
             block_addr = GetBlockAddress()
             key_type = GetKeyType()
             key_code = GetKeyCode()
@@ -359,7 +361,7 @@ def WriteCardBlock(fd):
             # Capture and validate data to be written - Ultra
             # Page Address 0 - 15
             card_type = ULTRA
-            print "Enter Ultra Card details"
+            print ("Enter Ultra Card details")
             page_addr = GetPageAddress(0,15)
             qty_data = 4
         elif choice == "3":
@@ -367,14 +369,14 @@ def WriteCardBlock(fd):
             # Capture and validate data to be written - NTAG2
             # Page Address 0 - 63
             card_type = NTAG2
-            print "Enter NTAG2 Card details"
+            print ("Enter NTAG2 Card details")
             page_addr = GetPageAddress(0,63)
             qty_data = 4
-        elif card_type = "e" or card_type == "E":
+        elif (card_type == "e") or (card_type == "E"):
             return
     
     data = GetDataBytes(qty_data)
-    print "Data Entered is %s" % data
+    print ("Data Entered is %s" % data)
 
     # Wait for a card to be present, capture type
     # check status and if ok continue
@@ -383,13 +385,13 @@ def WriteCardBlock(fd):
         # send the write block command ASCII 'W' 0x57
         wiringpi2.serialPutchar(fd, 0x55)
         
-        if card_type = MIFARE:
+        if card_type == MIFARE:
             wiringpi2.serialPutchar(fd, block_addr)
             # move key_type into the highest bit
             key_type = key_type << 7
             # key_code is already a number 0 - 31
-            wiringpi2.serialPutchar(fd, (key_type + key_code)
-        elif card_type = ULTRA or card_type = NTAG2:
+            wiringpi2.serialPutchar(fd, (key_type + key_code))
+        elif (card_type == ULTRA) or (card_type == NTAG2):
             # send the card page address
             wiringpi2.serialPutchar(fd, page_addr)
             # send a dummy byte
@@ -398,16 +400,16 @@ def WriteCardBlock(fd):
         # now send the data arguments, always 16 bytes
         bytes_sent = 0
         while bytes_sent < 16:
-            #print "Data to send %d, byte number %d" % (data[bytes_sent], bytes_sent)       #added for debug
+            #print ("Data to send %d, byte number %d" % (data[bytes_sent], bytes_sent))       #added for debug
             wiringpi2.serialPutchar(fd, data[bytes_sent])
             bytes_sent = byes_sent + 1
     # Check Status for error
     ans = ReadInt(fd)
-    # print "Write Status: %s" % hex(ans) #Added for Debug purposes
+    # print ("Write Status: %s" % hex(ans)) #Added for Debug purposes
     if DecodeAcknowledgeByte(ans):
         # Card present and read
         nocard = False
-        print "Card Write successful"
+        print ("Card Write successful")
     return
 
 def ReadTypeIdent(fd):
@@ -422,32 +424,32 @@ def ReadTypeIdent(fd):
     atqa_lsb = ""
     sak = ""
 
-    print "Reading Card Type ......."
+    print ("Reading Card Type .......")
 
-    print "Waiting for a card ...."
+    print ("Waiting for a card ....")
     
     nocard = True
     while nocard:
         WaitForCommandStobe()
-        # print "Sending Type Identification command" #Added for Debug purposes
+        # print ("Sending Type Identification command") #Added for Debug purposes
         # send an ASCII 'x' 0x78
         wiringpi2.serialPutchar(fd, 0x78)
         time.sleep(0.1)
         ans = ReadInt(fd)
-        # print "Tag Status: %s" % hex(ans) #Added for Debug purposes
+        print ("Tag Status: %s" % hex(ans)) #Added for Debug purposes
 
         if DecodeAcknowledgeByte(ans):
             # Card present and read
             nocard = False
-            # print "Tag Present" #Added for Debug purposes
+            # print ("Tag Present") #Added for Debug purposes
             
             #read the 3 bytes opf infomation
             atqa_msb = ReadInt(fd)
             atqa_lsb = ReadInt(fd)
             sak = ReadInt(fd)
-            print "Card Type "
-            print "ATQA (msb / lsb) : %s / %s" % atqa_msb, atqa_lsb
-            print "SAK              : %s" % sak
+            print ("Card Type ")
+            print ("ATQA (msb / lsb) : %s / %s" % (atqa_msb, atqa_lsb))
+            print ("SAK              : %s" % sak)
     return
 
 def ReadCardBlock(fd):
@@ -463,15 +465,14 @@ def ReadCardBlock(fd):
     choice = ""
 
     # user selection of card type
-    print "**************************************************************************\n"
-    print "Select Card Type: -"
-    print " 1 - Mifare 1k / 4k card"
-    print " 2 - Ultralight card"
-    print " 3 - NTAG2 card"
-    print " e - Return to main menu"
-    print ""
-    while choice = "":
-        choice= raw_input ("Select Card Type:")
+    print ("**************************************************************************\n")
+    print ("Select Card Type: -")
+    print (" 1 - Mifare 1k / 4k card")
+    print (" 2 - Ultralight card")
+    print (" 3 - NTAG2 card")
+    print (" e - Return to main menu\n")
+    while choice == "":
+        choice= input ("Select Card Type:")
         if card_type == "1":
             # MiFare 1k or 4k card selected
             # Capture and validate data to be written - MiFare
@@ -480,7 +481,7 @@ def ReadCardBlock(fd):
             # Key Code Number 0 - 31
             # 16 bytes of data, each byte 0 - 255
             card_type = MIFARE
-            print "Enter MiFare 1k / 4k details"
+            print ("Enter MiFare 1k / 4k details")
             block_addr = GetBlockAddress()
             key_type = GetKeyType()
             key_code = GetKeyCode()
@@ -489,16 +490,16 @@ def ReadCardBlock(fd):
             # Capture and validate data to be written - Ultra
             # Page Address 0 - 15
             card_type = ULTRA
-            print "Enter Ultra Card details"
+            print ("Enter Ultra Card details")
             page_addr = GetPageAddress(0,15)
         elif choice == "3":
             # NTAG2 Card Type
             # Capture and validate data to be written - NTAG2
             # Page Address 0 - 63
             card_type = NTAG2
-            print "Enter NTAG2 Card details"
+            print ("Enter NTAG2 Card details")
             page_addr = GetPageAddress(0,63)
-        elif card_type = "e" or card_type == "E":
+        elif (card_type == "e") or (card_type == "E"):
             return
     
     # Wait for a card to be present, capture type
@@ -508,13 +509,13 @@ def ReadCardBlock(fd):
         # send the read block command ASCII 'R' 0x52
         wiringpi2.serialPutchar(fd, 0x52)
         
-        if card_type = MIFARE:
+        if card_type == MIFARE:
             wiringpi2.serialPutchar(fd, block_addr)
             # move key_type into the highest bit
             key_type = key_type << 7
             # key_code is already a number 0 - 31
-            wiringpi2.serialPutchar(fd, (key_type + key_code)
-        elif card_type = ULTRA or card_type = NTAG2:
+            wiringpi2.serialPutchar(fd, (key_type + key_code))
+        elif (card_type == ULTRA) or (card_type == NTAG2):
             # send the card page address
             wiringpi2.serialPutchar(fd, page_addr)
             # send a dummy byte
@@ -522,13 +523,13 @@ def ReadCardBlock(fd):
 
         # Check Acknowledge Status for error
         ans = ReadInt(fd)
-        # print "Read Status: %s" % hex(ans) #Added for Debug purposes
+        # print ("Read Status: %s" % hex(ans)) #Added for Debug purposes
         if DecodeAcknowledgeByte(ans):
             # Card present and read
             nocard = False
             data_read = ReadText(fd)
-            print "Card Read successful"
-            print "-->%s<--" % data_read
+            print ("Card Read successful")
+            print ("-->%s<--" % data_read)
     
     return
 
@@ -540,23 +541,23 @@ def IncValue(fd):
     dest_block_addr = ""
     qty_data = 4
     
-    print ""
-    print "Only works with Mifare 1k / 4k cards"
+
+    print ("\nOnly works with Mifare 1k / 4k cards\n")
     # MiFare 1k or 4k card selected
     # Capture and validate data to be written - MiFare
     # Block address 0 - 255
     # Key Type 0 = KeyA, 1 = KeyB
     # Key Code Number 0 - 31
     # 16 bytes of data, each byte 0 - 255
-    print "***** Enter Source details *****"
+    print ("***** Enter Source details *****")
     src_block_addr = GetBlockAddress()
     key_type = GetKeyType()
     key_code = GetKeyCode()
-    print "***** Enter Destination details *****"
+    print ("***** Enter Destination details *****")
     dest_block_addr = GetBlockAddress()
     
     data = GetDataBytes(qty_data)
-    print "Data Entered is %s" % data
+    print ("Data Entered is %s" % data)
 
     # Wait for a card to be present, capture type
     # check status and if ok continue
@@ -570,24 +571,24 @@ def IncValue(fd):
         # move key_type into the highest bit
         key_type = key_type << 7
         # key_code is already a number 0 - 31
-        wiringpi2.serialPutchar(fd, (key_type + key_code)
+        wiringpi2.serialPutchar(fd, (key_type + key_code))
 
         wiringpi2.serialPutchar(fd, dest_block_addr)
 
         # now send the data arguments, always 4 bytes
         bytes_sent = 0
         while bytes_sent < qty_data:
-            #print "Data to send %d, byte number %d" % (data[bytes_sent], bytes_sent)       #added for debug
+            #print ("Data to send %d, byte number %d" % (data[bytes_sent], bytes_sent) )      #added for debug
             wiringpi2.serialPutchar(fd, data[bytes_sent])
             bytes_sent = byes_sent + 1
             
     # Check Status for error
     ans = ReadInt(fd)
-    # print "Write Status: %s" % hex(ans) #Added for Debug purposes
+    # print ("Write Status: %s" % hex(ans)) #Added for Debug purposes
     if DecodeAcknowledgeByte(ans):
         # Card present and read
         nocard = False
-        print "Card Increment Value successful"
+        print ("Card Increment Value successful")
     return
 
 def DecValue(fd):
@@ -598,23 +599,23 @@ def DecValue(fd):
     dest_block_addr = ""
     qty_data = 4
     
-    print ""
-    print "Only works with Mifare 1k / 4k cards"
+
+    print ("\nOnly works with Mifare 1k / 4k cards")
     # MiFare 1k or 4k card selected
     # Capture and validate data to be written - MiFare
     # Block address 0 - 255
     # Key Type 0 = KeyA, 1 = KeyB
     # Key Code Number 0 - 31
     # 16 bytes of data, each byte 0 - 255
-    print "***** Enter Source details *****"
+    print ("***** Enter Source details *****")
     src_block_addr = GetBlockAddress()
     key_type = GetKeyType()
     key_code = GetKeyCode()
-    print "***** Enter Destination details *****"
+    print ("***** Enter Destination details *****")
     dest_block_addr = GetBlockAddress()
     
     data = GetDataBytes(qty_data)
-    print "Data Entered is %s" % data
+    print ("Data Entered is %s" % data)
 
     # Wait for a card to be present, capture type
     # check status and if ok continue
@@ -628,24 +629,24 @@ def DecValue(fd):
         # move key_type into the highest bit
         key_type = key_type << 7
         # key_code is already a number 0 - 31
-        wiringpi2.serialPutchar(fd, (key_type + key_code)
+        wiringpi2.serialPutchar(fd, (key_type + key_code))
 
         wiringpi2.serialPutchar(fd, dest_block_addr)
 
         # now send the data arguments, always 4 bytes
         bytes_sent = 0
         while bytes_sent < qty_data:
-            #print "Data to send %d, byte number %d" % (data[bytes_sent], bytes_sent)       #added for debug
+            #print ("Data to send %d, byte number %d" % (data[bytes_sent], bytes_sent))       #added for debug
             wiringpi2.serialPutchar(fd, data[bytes_sent])
             bytes_sent = byes_sent + 1
             
     # Check Status for error
     ans = ReadInt(fd)
-    # print "Write Status: %s" % hex(ans) #Added for Debug purposes
+    # print ("Write Status: %s" % hex(ans)) #Added for Debug purposes
     if DecodeAcknowledgeByte(ans):
         # Card present and read
         nocard = False
-        print "Card Decrement Value successful"
+        print ("Card Decrement Value successful")
     return
 
 
@@ -657,19 +658,18 @@ def TransferValue(fd):
     dest_block_addr = ""
     qty_data = 4
     
-    print ""
-    print "Only works with Mifare 1k / 4k cards"
+    print ("\nOnly works with Mifare 1k / 4k cards\n")
     # MiFare 1k or 4k card selected
     # Capture and validate data to be written - MiFare
     # Block address 0 - 255
     # Key Type 0 = KeyA, 1 = KeyB
     # Key Code Number 0 - 31
     # 16 bytes of data, each byte 0 - 255
-    print "***** Enter Source details *****"
+    print ("***** Enter Source details *****")
     src_block_addr = GetBlockAddress()
     key_type = GetKeyType()
     key_code = GetKeyCode()
-    print "***** Enter Destination details *****"
+    print ("***** Enter Destination details *****")
     dest_block_addr = GetBlockAddress()
     
     # Wait for a card to be present, capture type
@@ -684,17 +684,17 @@ def TransferValue(fd):
         # move key_type into the highest bit
         key_type = key_type << 7
         # key_code is already a number 0 - 31
-        wiringpi2.serialPutchar(fd, (key_type + key_code)
+        wiringpi2.serialPutchar(fd, (key_type + key_code))
 
         wiringpi2.serialPutchar(fd, dest_block_addr)
 
     # Check Status for error
     ans = ReadInt(fd)
-    # print "Write Status: %s" % hex(ans) #Added for Debug purposes
+    # print ("Write Status: %s" % hex(ans)) #Added for Debug purposes
     if DecodeAcknowledgeByte(ans):
         # Card present and read
         nocard = False
-        print "Card Transfer Value successful"
+        print ("Card Transfer Value successful")
     return
 
 def ProgramEEPROM(fd):
@@ -714,7 +714,7 @@ def ProgramEEPROM(fd):
     if DecodeAcknowledgeByte(ans):
         # Card present and read
         nocard = False
-        print "EEPROM Program successful"
+        print ("EEPROM Program successful")
     return
 
 def StoreKeys(fd):
@@ -723,18 +723,15 @@ def StoreKeys(fd):
     key_code = ""
     qty_data = 6
     
-    print ""
-    print "Only works with Mifare 1k / 4k cards"
-    print ""
-    print "Only use this command once Key Codes are fully understood"
-    print ""
+    print ("\nOnly works with Mifare 1k / 4k cards\n")
+    print ("\nOnly use this command once Key Codes are fully understood\n")
     # MiFare 1k or 4k card selected
     # Capture and validate data to be written - MiFare
     # Key Code Number 0 - 31
     # 6 bytes of data, each byte 0 - 255
     key_code = GetKeyCode()
     data = GetDataBytes(qty_data)
-    print "Data Entered is %s" % data
+    print ("Data Entered is %s" % data)
     
     # Wait for a card to be present, capture type
     # check status and if ok continue
@@ -744,50 +741,48 @@ def StoreKeys(fd):
         wiringpi2.serialPutchar(fd, 0x4B)
         
         # key_code is already a number 0 - 31
-        wiringpi2.serialPutchar(fd, (key_type + key_code)
+        wiringpi2.serialPutchar(fd, (key_type + key_code))
     
     # Check Status for error
     ans = ReadInt(fd)
-    # print "Store Keys Status: %s" % hex(ans) #Added for Debug purposes
+    # print ("Store Keys Status: %s" % hex(ans)) #Added for Debug purposes
     if DecodeAcknowledgeByte(ans):
         # Card present and read
         nocard = False
-        print "Store Keys successful"
+        print ("Store Keys successful")
     return    
     
 def HelpText():
     # show the help text
-    print "**************************************************************************\n"
-    print "Available commands: -"
-    print "z - Display product and firmware version information"
-    print "x - Type Identification"
-    print "S - Read the Card Status"
-    print "U - Read Card UID"
-    print "F - Perform a Factory Reset"
-    print "P - Program EEPROM"
-    print "K - Store Keys"
-    print "W - Write Card Block"
-    print "R - Read Card Block"
-    print "I - Inc Value"
-    print "D - Dec Value"
-    print "T - Transfer Value"
-    print "e - Exit program"
+    print ("**************************************************************************\n")
+    print ("Available commands: -")
+    print ("z - Display product and firmware version information")
+    print ("x - Type Identification")
+    print ("S - Read the Card Status")
+    print ("U - Read Card UID")
+    print ("F - Perform a Factory Reset")
+    print ("P - Program EEPROM")
+    print ("K - Store Keys")
+    print ("W - Write Card Block")
+    print ("R - Read Card Block")
+    print ("I - Inc Value")
+    print ("D - Dec Value")
+    print ("T - Transfer Value")
+    print ("e - Exit program")
 
 
 # main code loop
 
-print "Bostin Technology Ltd"
-print "Cogniot Products"
-print "PinFln"
-print ""
-print "Press h for help"
-print ""
+print ("Bostin Technology Ltd")
+print ("Cogniot Products")
+print ("PinFln\n")
+print ("Press h for help\n")
 
 #Initiate Communications
 comms = NFCSetup()
 
 while True:
-    choice = raw_input ("Select Menu Option:")
+    choice = input ("Select Menu Option:")
 
     if choice == "H" or choice == "h":
         HelpText()
