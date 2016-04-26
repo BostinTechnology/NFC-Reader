@@ -1,0 +1,3 @@
+
+gcc -Wall -o NFCReader NFCReader.c -lwiringPi
+
